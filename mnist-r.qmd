@@ -1,0 +1,178 @@
+---
+title: "MNIST Dataset: Illustrating kNN Classification"
+format: 
+  html:
+    self-contained: true
+css: some.css
+---
+
+
+## Packages
+
+```{r}
+#| message: false 
+library(tidyverse)
+```
+
+
+## Data Reading
+
+```{r}
+#| cache: true
+#| 
+dtrain <- data.table::fread("MNIST_txt/MNIST_train.txt", sep = ",") %>% rename(target=V1)
+dtest <- data.table::fread("MNIST_txt/MNIST_test.txt", sep = ",") %>% rename(target=V1)
+list(
+  `Train Set` = dtrain,
+  `Test Set` = dtest) %>% map(~dim(.x))
+```
+
+## A Instance of The Pixel Matrix
+
+![](img/28by28.png){width='100%' fig-align='center'}
+
+```{r eval=FALSE}
+dtrain[1,] %>% 
+  unlist(use.names=F) %>% {
+    x <- .
+    target <- x[1]
+    feature <- x[-1]
+    list(
+      `Target Digit` = target,
+      `Pixel Matrix` = matrix(feature, nrow = 28, byrow=T)
+    )
+  }
+```
+
+
+![](img/typical-instance-of-data.png){width='100%' fig-align='center'}
+
+
+## Computing Euclidean Distances
+
+
+![](img/mnist-training.png){width='100%' fig-align='center'}
+
+
+```{r}
+#|cache: true
+dtest %>% 
+  mutate(id=1:nrow(dtest)) %>% 
+  group_by(target) %>% 
+  group_modify(~head(.x,1)) %>% 
+  select(id,everything()) -> selected_tests
+DT::datatable(selected_tests)
+```
+
+
+
+```{r}
+knn_search <- function(ID,k) {
+  Ni <- selected_tests$id[ID]
+dtrain %>%
+  mutate(id = 1:6e4) %>%
+  select(id,everything()) %>%
+  group_by(id) %>%
+  group_split %>%
+  map(~{
+    sqrt(sum((unlist(.x[,-(1:2)]) - unlist(dtest[Ni,-1]))^2))
+  })  %>%
+  unlist -> distV
+
+dtest[Ni,1] %>% unlist
+dtrain[,1] %>%
+  mutate(D = distV) -> hmm
+
+hmm %>%
+  arrange(D) %>%
+  head(k) -> kNN_dt  # Selecting Top k
+  
+kNN_dt %>% # Setting k
+  with(table(target)) %>%
+  barplot(main = paste0("Target ", selected_tests$target[ID]))
+
+kNN_dt %>%
+  mutate(target = factor(target, levels = 0:9)) %>% 
+  with(boxplot(D~target))
+
+kNN_dt %>% 
+  DT::datatable(.)
+}
+
+```
+
+
+## A Simple Test
+
+
+### Testing for Digit 0
+
+```{r}
+#| cache: true
+knn_search(ID = 1, k = 2000)
+```
+
+### Testing for Digit 1
+
+```{r}
+#| cache: true
+knn_search(ID = 2, k = 2000)
+```
+
+### Testing for Digit 2
+
+```{r}
+#| cache: true
+knn_search(ID = 3, k = 2000)
+```
+
+
+### Testing for Digit 3
+
+```{r}
+#| cache: true
+knn_search(ID = 4, k = 2000)
+```
+
+### Testing for Digit 4
+
+```{r}
+#| cache: true
+knn_search(ID = 5, k = 2000)
+```
+
+### Testing for Digit 5
+
+```{r}
+#| cache: true
+knn_search(ID = 6, k = 2000)
+```
+
+
+### Testing for Digit 6
+
+```{r}
+#| cache: true
+knn_search(ID = 7, k = 2000)
+```
+
+### Testing for Digit 7
+
+```{r}
+#| cache: true
+knn_search(ID = 8, k = 2000)
+```
+
+### Testing for Digit 8
+
+```{r}
+#| cache: true
+knn_search(ID = 9, k = 2000)
+```
+
+### Testing for Digit 9
+
+```{r}
+#| cache: true
+knn_search(ID = 10, k = 2000)
+```
